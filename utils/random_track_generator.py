@@ -45,27 +45,6 @@ def no_hole_in_the_middle(points, radius):
     return False
 
 
-# def random_walk():
-#     steps = 200
-#     step_length = 1.5
-#     min_angle = -math.pi / 6
-#     max_angle = math.pi / 6
-#
-#     while True:
-#         points = np.zeros((steps, 2))
-#         curr_angle = 0
-#         for i in range(1, steps):
-#             delta_angle = random.uniform(min_angle, max_angle)
-#             curr_angle += delta_angle
-#             x = points[i-1][0] + step_length * math.cos(curr_angle)
-#             y = points[i-1][1] + step_length * math.sin(curr_angle)
-#             points[i] = [x, y]
-#
-#         if distance2(points[0], points[-1]) < 25:
-#             if no_intersections(points):
-#                 return points.T
-
-
 def sign(x):
     return 1 if x >= 0 else -1
 
@@ -78,10 +57,8 @@ def random_walk():
     attempts = 1
     while True:
         points = np.zeros((steps, 2))
-        grid = np.zeros((4000, 4000))
         pose_x, pose_y = 2000, 2000
         current_angle = 0.0
-        grid[pose_x, pose_y] = 1
         points[0] = [pose_x / 10.0, pose_y / 10.0]
         for i in range(1, steps):
             if i <= 150:
@@ -95,7 +72,6 @@ def random_walk():
             pose_y += int(step_length * math.sin(current_angle))
             if pose_x < 0 or pose_x >= 4000 or pose_y < 0 or pose_y >= 4000:
                 break
-            grid[pose_x, pose_y] = 1
             points[i] = [pose_x / 10.0, pose_y / 10.0]
             if i > 150 and distance2(points[0], points[i]) < 9:
                 points = points[:i]
@@ -206,33 +182,46 @@ def generate_track(path):
     left_cones = np.delete(left_cones, np.size(left_cones, axis=1) - 1, axis=1)
     right_cones = np.delete(right_cones, np.size(right_cones, axis=1) - 1, axis=1)
 
-    # Visualize the track
-    plt.figure(figsize=(12, 8))
-    plt.scatter(left_cones[0, 0], left_cones[1, 0], c='orange', s=100, label='Start/Finish Left', marker='s')
-    plt.scatter(right_cones[0, 0], right_cones[1, 0], c='orange', s=100, label='Start/Finish Right', marker='s')
-    plt.scatter(left_cones[0, 1:], left_cones[1, 1:], c='blue', s=50, label='Left Cones', alpha=0.7)
-    plt.scatter(right_cones[0, 1:], right_cones[1, 1:], c='yellow', s=50, label='Right Cones', alpha=0.7)
+    # # Visualize the track
+    # plt.figure(figsize=(12, 8))
+    # plt.scatter(left_cones[0, 0], left_cones[1, 0], c='orange', s=100, label='Start/Finish Left', marker='s')
+    # plt.scatter(right_cones[0, 0], right_cones[1, 0], c='orange', s=100, label='Start/Finish Right', marker='s')
+    # plt.scatter(left_cones[0, 1:], left_cones[1, 1:], c='blue', s=50, label='Left Cones', alpha=0.7)
+    # plt.scatter(right_cones[0, 1:], right_cones[1, 1:], c='yellow', s=50, label='Right Cones', alpha=0.7)
     
-    # Draw the track boundaries as lines
-    plt.plot(left_cones[0, :], left_cones[1, :], 'b-', alpha=0.5, linewidth=2)
-    plt.plot(right_cones[0, :], right_cones[1, :], 'y-', alpha=0.5, linewidth=2)
+    # # Draw the track boundaries as lines
+    # plt.plot(left_cones[0, :], left_cones[1, :], 'b-', alpha=0.5, linewidth=2)
+    # plt.plot(right_cones[0, :], right_cones[1, :], 'y-', alpha=0.5, linewidth=2)
     
-    plt.axis('equal')
-    plt.grid(True, alpha=0.3)
-    plt.legend()
-    plt.title('Generated Random Track')
-    plt.xlabel('X (meters)')
-    plt.ylabel('Y (meters)')
-    plt.savefig(f'{path}.png', dpi=300)
-    plt.close()
+    # plt.axis('equal')
+    # plt.grid(True, alpha=0.3)
+    # plt.legend()
+    # plt.title('Generated Random Track')
+    # plt.xlabel('X (meters)')
+    # plt.ylabel('Y (meters)')
+    # plt.savefig(f'{path}.png', dpi=300)
+    # plt.close()
 
     export_track(path, left_cones, right_cones)
 
 
 def main():
-    destination = "./plots/random_track"
-    os.makedirs(os.path.dirname(destination), exist_ok=True)
-    generate_track(destination)
+    # Generate 30 different tracks
+    num_tracks = 5
+    base_destination = "./plots/random_track"
+    os.makedirs(os.path.dirname(base_destination), exist_ok=True)
+    
+    print(f"Generating {num_tracks} random tracks...")
+    start_time = time.time()
+    for i in range(num_tracks):
+        destination = f"{base_destination}_{i+1:02d}"
+        print(f"Generating track {i+1}/{num_tracks}...")
+        generate_track(destination)
+    end_time = time.time()
+    total_time = end_time - start_time
+    print(f"Total time  per track: {total_time / num_tracks:.2f} seconds")
+    print(f"Successfully generated {num_tracks} tracks!")
+    print(f"Files saved in: {os.path.dirname(base_destination)}/")
 
 
 if __name__ == '__main__':
