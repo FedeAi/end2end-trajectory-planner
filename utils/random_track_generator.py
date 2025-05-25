@@ -7,6 +7,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.interpolate import splprep, splev, splrep
+from scipy.ndimage import gaussian_filter1d
 from shapely import LineString
 
 
@@ -120,7 +121,27 @@ def generate_boundaries():
     track_points = np.delete(track_points, np.size(track_points, axis=1) - 1, axis=1)
     track_points = np.roll(track_points, -start_idx, axis=1)
 
-    width_profile = np.ones(np.size(track_points, axis=1)) * 3.0
+    # Generate smooth varying width profile with mean 3.0
+    num_points = np.size(track_points, axis=1)
+    
+    # Create smooth variations using multiple sine waves with different frequencies
+    t = np.linspace(0, 2 * np.pi, num_points, endpoint=False)
+    
+    # Combine multiple frequency components for natural variation
+    width_variation = (0.4 * np.sin(1.5 * t) +           # Low frequency variation
+                      0.3 * np.sin(3.7 * t) +            # Medium frequency variation  
+                      0.1 * np.sin(7.2 * t))             # High frequency variation
+    
+    # Apply smoothing to ensure very smooth transitions
+    width_variation = gaussian_filter1d(width_variation, sigma=2.0, mode='wrap')
+    
+    # Create width profile: base width of 3.0 + smooth variations
+    # Width will vary between approximately 2.2 and 3.8 meters
+    width_profile = 3.0 + width_variation
+    
+    # Ensure minimum width of 2.0 meters for safety
+    width_profile = np.maximum(width_profile, 2.0)
+    
     width_shift = np.zeros(np.size(track_points, axis=1))
 
     # Generate left and right boundaries' points
@@ -134,12 +155,12 @@ def generate_boundaries():
         dir_vec[1] = track_points[0][j] - track_points[0][i]
         dir_vec = dir_vec/np.linalg.norm(dir_vec)
 
-        sampling_distance = width_profile[i] / 2 + width_shift[i]
-        left_points[0][i] = track_points[0][i] + sampling_distance * dir_vec[0]
-        left_points[1][i] = track_points[1][i] + sampling_distance * dir_vec[1]
-        sampling_distance = width_profile[i] / 2 - width_shift[i]
-        right_points[0][i] = track_points[0][i] - sampling_distance * dir_vec[0]
-        right_points[1][i] = track_points[1][i] - sampling_distance * dir_vec[1]
+        sampling_lateral_distance = width_profile[i] / 2 + width_shift[i]
+        left_points[0][i] = track_points[0][i] + sampling_lateral_distance * dir_vec[0]
+        left_points[1][i] = track_points[1][i] + sampling_lateral_distance * dir_vec[1]
+        sampling_lateral_distance = width_profile[i] / 2 - width_shift[i]
+        right_points[0][i] = track_points[0][i] - sampling_lateral_distance * dir_vec[0]
+        right_points[1][i] = track_points[1][i] - sampling_lateral_distance * dir_vec[1]
 
     # Translate all points to the origin
     translation_vec = ((left_points[0][0] + right_points[0][0]) / 2.0, (left_points[1][0] + right_points[1][0]) / 2.0)
@@ -182,25 +203,25 @@ def generate_track(path):
     left_cones = np.delete(left_cones, np.size(left_cones, axis=1) - 1, axis=1)
     right_cones = np.delete(right_cones, np.size(right_cones, axis=1) - 1, axis=1)
 
-    # # Visualize the track
-    # plt.figure(figsize=(12, 8))
-    # plt.scatter(left_cones[0, 0], left_cones[1, 0], c='orange', s=100, label='Start/Finish Left', marker='s')
-    # plt.scatter(right_cones[0, 0], right_cones[1, 0], c='orange', s=100, label='Start/Finish Right', marker='s')
-    # plt.scatter(left_cones[0, 1:], left_cones[1, 1:], c='blue', s=50, label='Left Cones', alpha=0.7)
-    # plt.scatter(right_cones[0, 1:], right_cones[1, 1:], c='yellow', s=50, label='Right Cones', alpha=0.7)
+    # Visualize the track
+    plt.figure(figsize=(12, 8))
+    plt.scatter(left_cones[0, 0], left_cones[1, 0], c='orange', s=100, label='Start/Finish Left', marker='s')
+    plt.scatter(right_cones[0, 0], right_cones[1, 0], c='orange', s=100, label='Start/Finish Right', marker='s')
+    plt.scatter(left_cones[0, 1:], left_cones[1, 1:], c='blue', s=50, label='Left Cones', alpha=0.7)
+    plt.scatter(right_cones[0, 1:], right_cones[1, 1:], c='yellow', s=50, label='Right Cones', alpha=0.7)
     
-    # # Draw the track boundaries as lines
-    # plt.plot(left_cones[0, :], left_cones[1, :], 'b-', alpha=0.5, linewidth=2)
-    # plt.plot(right_cones[0, :], right_cones[1, :], 'y-', alpha=0.5, linewidth=2)
+    # Draw the track boundaries as lines
+    plt.plot(left_cones[0, :], left_cones[1, :], 'b-', alpha=0.5, linewidth=2)
+    plt.plot(right_cones[0, :], right_cones[1, :], 'y-', alpha=0.5, linewidth=2)
     
-    # plt.axis('equal')
-    # plt.grid(True, alpha=0.3)
-    # plt.legend()
-    # plt.title('Generated Random Track')
-    # plt.xlabel('X (meters)')
-    # plt.ylabel('Y (meters)')
-    # plt.savefig(f'{path}.png', dpi=300)
-    # plt.close()
+    plt.axis('equal')
+    plt.grid(True, alpha=0.3)
+    plt.legend()
+    plt.title('Generated Random Track')
+    plt.xlabel('X (meters)')
+    plt.ylabel('Y (meters)')
+    plt.savefig(f'{path}.png', dpi=300)
+    plt.close()
 
     export_track(path, left_cones, right_cones)
 
