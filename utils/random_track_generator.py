@@ -240,7 +240,8 @@ def export_track(path, left_points, right_points):
         res["track"].append([left_points[0][i], left_points[1][i], 0])
         res["track"].append([right_points[0][i], right_points[1][i], 1])
 
-    with open(path, "w") as f:
+    json_path = f'{path}.json'
+    with open(json_path, "w") as f:
         json.dump(res, f)
 
 
